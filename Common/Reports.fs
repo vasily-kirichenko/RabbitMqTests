@@ -22,3 +22,4 @@ module ReScan =
     let private scanResult = FileScanResult([| DetectInfo("comment 1", Nullable 1L) |], true, false, "Error reason 1")
     let success() = SuccessSingleFileScannerReport(CompositeTaskId(nextTaskId()), scanResult, PluginGuid = pluginGuid)
     let failed() = FailedScannerReport(CompositeTaskId(nextTaskId()), "Error message 1", PluginGuid = pluginGuid)
+

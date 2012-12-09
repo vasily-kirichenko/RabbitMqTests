@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Threading;
-using DistributedTaskDataContracts.Messages.Reports;
-using DistributedTaskDataContracts.Messages.Reports.FalseCatcher;
-using DistributedTaskDataContracts.Messages.Reports.Scanner;
+using Common;
 using EasyNetQ;
-using RabbitMQ.Client;
-using KlSrl.Core.Extensions;
+using EasyNetQ.Topology;
+using Exchange = EasyNetQ.Topology.Exchange;
 
 namespace EasyNetQPublisher2
 {
@@ -13,21 +11,23 @@ namespace EasyNetQPublisher2
     {
         readonly IBus _bus;
         int _totalCount;
+        private IExchange _exchange;
 
         public Publisher(IBus bus)
         {
             _bus = bus;
-            CreateQueues();
+            _exchange = Exchange.DeclareTopic("reports", false, null);
+            //CreateQueues();
         }
         
         public void RunManual()
         {
-            using (var ch = _bus.OpenPublishChannel(cc => cc.WithPublisherConfirms()))
+            using (var channel = _bus.Advanced.OpenPublishChannel(conf => conf.WithPublisherConfirms()))
             {
                 while (true)
                 {
                     Console.WriteLine("1 - Success FC, 2 - Failed FC, 3 - Success Scan, 4 - Failed Scan");
-                    PublishById(ch, int.Parse(new string(new[] {Console.ReadKey().KeyChar})));
+                    PublishById(channel, int.Parse(new string(new[] {Console.ReadKey().KeyChar})));
                 }
             }
         }
@@ -36,32 +36,31 @@ namespace EasyNetQPublisher2
         {
             var random = new Random();
             
-            using (var c = _bus.OpenPublishChannel(cc => cc.WithPublisherConfirms()))
+            using (var channel = _bus.Advanced.OpenPublishChannel(conf => conf.WithPublisherConfirms()))
             {
                 while (true)
                 {
-                    var id = Math.Max(1, Math.Min(random.Next(1, 5), 4));
-                    PublishById(c, id);
+                    PublishById(channel, Math.Max(1, Math.Min(random.Next(1, 5), 4)));
                     Thread.Sleep(0);
                 }
             }
         }
 
-        void PublishById(IPublishChannel ch, int id)
+        void PublishById(IAdvancedPublishChannel channel, int id)
         {
             switch (id)
             {
                 case 1:
-                    Publish(ch, Reports.Fc.success());
+                    Publish(channel, new SimpleReports.SuccessFc(1, "p"));
                     break;
                 case 2:
-                    Publish(ch, Reports.Fc.failed());
+                    Publish(channel, new SimpleReports.FailedFc(2, "p1"));
                     break;
                 case 3:
-                    Publish(ch, Reports.ReScan.success());
+                    Publish(channel, new SimpleReports.SuccessReScan(4, "p2"));
                     break;
                 case 4:
-                    Publish(ch, Reports.ReScan.failed());
+                    Publish(channel, new SimpleReports.FailedReScan(4, "p3"));
                     break;
                 default:
                     {
@@ -70,42 +69,86 @@ namespace EasyNetQPublisher2
                     }
             }
         }
+        
+//        void PublishById(IAdvancedPublishChannel channel, int id)
+//        {
+//            switch (id)
+//            {
+//                case 1:
+//                    Publish(channel, Reports.Fc.success());
+//                    break;
+//                case 2:
+//                    Publish(channel, Reports.Fc.failed());
+//                    break;
+//                case 3:
+//                    Publish(channel, Reports.ReScan.success());
+//                    break;
+//                case 4:
+//                    Publish(channel, Reports.ReScan.failed());
+//                    break;
+//                default:
+//                    {
+//                        Console.WriteLine("Wrong id");
+//                        return;
+//                    }
+//            }
+//        }
 
-        static void CreateQueues()
+        void Publish<T>(IAdvancedPublishChannel channel, T report)
         {
-            var conventions = new Conventions();
-            var factory = new ConnectionFactory {HostName = "localhost", UserName = "guest", Password = "guest"};
+            var envelop = new Envelop(report);
+            var message = new Message<Envelop>(envelop);
+            message.Properties.DeliveryMode = 1;
+            message.Properties.Headers["content-type"] = envelop.ContentType;
+            
+            channel.Publish(_exchange, envelop.ContentType, message,
+                            conf => conf.OnSuccess(OnSuccess).OnFailure(OnFailure));
 
-            using (var conn = factory.CreateConnection())
-            using (var ch = conn.CreateModel())
-            {
-                new[]
-                    {
-                        typeof (SuccessFalseCatcherReport), typeof (FailedFalseCatcherReport),
-                        typeof (SuccessSingleFileScannerReport),
-                        typeof (FailedScannerReport)
-                    }.Each(rt =>
-                        {
-                            var queue = ch.QueueDeclare(conventions.QueueNamingConvention(rt, "1"), true, false, false,
-                                                        null);
-                            var exchangeName = conventions.ExchangeNamingConvention(rt);
-                            ch.ExchangeDeclare(exchangeName, "topic", true, false, null);
-                            ch.QueueBind(queue.QueueName, exchangeName, "#");
-                        });
-            }
-        }
-
-        void OnSuccess(){}
-        void OnFailure(){}
-
-        void Publish<T>(IPublishChannel ch, T report) where T : PluginReport
-        {
-            ch.Publish(report, cc => cc.OnSuccess(OnSuccess).OnFailure(OnFailure));
             var currentCount = Interlocked.Increment(ref _totalCount);
 
             if (currentCount % 100 == 0)
                 Console.WriteLine("{0} messages published.", currentCount);
         }
+
+//        private static void CreateQueues()
+//        {
+//            var factory = new ConnectionFactory {HostName = "localhost", UserName = "guest", Password = "guest"};
+//
+//            using (var conn = factory.CreateConnection())
+//            using (var ch = conn.CreateModel())
+//            {
+//                var queue = ch.QueueDeclare("reports.false_catcher", true, false, false, null);
+//                const string exchangeName = "reports";
+//                ch.ExchangeDeclare(exchangeName, "topic", true, false, null);
+//                ch.QueueBind(queue.QueueName, exchangeName, "#");
+//            }
+//        }
+
+//        static void CreateQueues()
+//        {
+//            var conventions = new Conventions();
+//            var factory = new ConnectionFactory {HostName = "localhost", UserName = "guest", Password = "guest"};
+//
+//            using (var conn = factory.CreateConnection())
+//            using (var ch = conn.CreateModel())
+//            {
+//                new[]
+//                    {
+//                        typeof (SuccessFalseCatcherReport), typeof (FailedFalseCatcherReport),
+//                        typeof (SuccessSingleFileScannerReport),
+//                        typeof (FailedScannerReport)
+//                    }.Each(rt =>
+//                        {
+//                            var queue = ch.QueueDeclare(conventions.QueueNamingConvention(rt, "1"), true, false, false, null);
+//                            var exchangeName = conventions.ExchangeNamingConvention(rt);
+//                            ch.ExchangeDeclare(exchangeName, "topic", true, false, null);
+//                            ch.QueueBind(queue.QueueName, exchangeName, "#");
+//                        });
+//            }
+//        }
+
+        void OnSuccess(){}
+        void OnFailure(){}
     }
 }
 

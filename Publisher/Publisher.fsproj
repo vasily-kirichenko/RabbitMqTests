@@ -43,8 +43,7 @@
     <Reference Include="DistributedTaskDataContracts">
       <HintPath>..\lib\DistributedTaskDataContracts.dll</HintPath>
     </Reference>
-    <Reference Include="EasyNetQ">
-      <HintPath>packages\EasyNetQ.0.9.1.55\lib\net40\EasyNetQ.dll</HintPath>
+    <Reference Include="EasyNetQ, Version=0.9.1.55, Culture=neutral, PublicKeyToken=null">
       <Private>True</Private>
     </Reference>
     <Reference Include="EasyNetQ.Management.Client">

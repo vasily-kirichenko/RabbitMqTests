@@ -45,11 +45,13 @@
     <Reference Include="DistributedTaskDataContracts">
       <HintPath>..\..\lib\DistributedTaskDataContracts.dll</HintPath>
     </Reference>
-    <Reference Include="EasyNetQ">
-      <HintPath>..\packages\EasyNetQ.0.9.1.55\lib\net40\EasyNetQ.dll</HintPath>
+    <Reference Include="EasyNetQ, Version=0.9.1.60, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\EasyNetQ.0.9.1.60\lib\net40\EasyNetQ.dll</HintPath>
     </Reference>
-    <Reference Include="EasyNetQ.Management.Client">
-      <HintPath>..\packages\EasyNetQ.Management.Client.0.9.1.59\lib\net40\EasyNetQ.Management.Client.dll</HintPath>
+    <Reference Include="EasyNetQ.Management.Client, Version=0.9.1.60, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\EasyNetQ.Management.Client.0.9.1.60\lib\net40\EasyNetQ.Management.Client.dll</HintPath>
     </Reference>
     <Reference Include="KlDfsIntegration">
       <HintPath>..\..\lib\KlDfsIntegration.dll</HintPath>

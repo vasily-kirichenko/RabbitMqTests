@@ -2,6 +2,7 @@
 open System.Text
 open System.Threading
 open RabbitMQ.Client
+open RabbitMQ.Client.MessagePatterns
 open RabbitMqUtils
 
 type InteractiveConsumer() =
@@ -37,11 +38,21 @@ let main argv =
     let host = settings.GetValue("rabbitmq_host", typeof<string>) |> string
     use conn = (connectionFactory host).CreateConnection()
     use ch = conn.CreateModel()
-    //ch.BasicQos(0u, uint16 1, false)
-    ch.QueueDeclare(queueName, true, false, false, null) |> ignore
+    ch.BasicQos(0u, uint16 50, false)
+    ch.QueueDeclare(queueName, false, false, false, null) |> ignore
     ch.ExchangeDeclare("test_exchange", "direct", true, false, null)
     ch.QueueBind(queueName, "test_exchange", queueName)
-    ch.BasicConsume(queueName, false, FastConsumer(Model = ch)) |> ignore
+
+    use sub = new Subscription(ch, queueName, false)
+    let mutable consumedMessagesCount: int = 0
+
+    for msg in sub do
+        consumedMessagesCount <- consumedMessagesCount + 1
+        if consumedMessagesCount % 1000 = 0 then printfn "%d messages have been consumed so far" consumedMessagesCount
+        sub.Ack()
+
+    //ch.BasicConsume(queueName, false, FastConsumer(Model = ch)) |> ignore
+    
     printfn "DONE."
     while true do
         Thread.Sleep(1000000)

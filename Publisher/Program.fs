@@ -32,16 +32,16 @@ let main argv =
     use conn = (connectionFactory host).CreateConnection()
     use ch = conn.CreateModel()
     ch.ConfirmSelect()
-    ch.QueueDeclare(queueName, true, false, false, null) |> ignore
+    ch.QueueDeclare(queueName, false, false, false, null) |> ignore
     ch.ExchangeDeclare("test_exchange", "direct", true, false, null)
     ch.QueueBind(queueName, "test_exchange", queueName)
 
     let rec loop i =
         let props = ch.CreateBasicProperties()
-        props.SetPersistent(true)
+        //props.SetPersistent(true)
         props.CorrelationId <- string i
         ch.BasicPublish("test_exchange", queueName, props, taskAsBytes)
-        if i % 100 = 0 then printfn "%d messages have been published" i
+        if i % 1000 = 0 then printfn "%d messages have been published" i
         Thread.Sleep(0)
         loop (i + 1)
 

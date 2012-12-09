@@ -50,7 +50,8 @@
     <Reference Include="DistributedTaskDataContracts">
       <HintPath>..\lib\DistributedTaskDataContracts.dll</HintPath>
     </Reference>
-    <Reference Include="EasyNetQ, Version=0.9.1.55, Culture=neutral, PublicKeyToken=null">
+    <Reference Include="EasyNetQ">
+      <HintPath>..\Publisher\packages\EasyNetQ.0.9.1.55\lib\net40\EasyNetQ.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="EasyNetQ.Management.Client">
@@ -67,7 +68,8 @@
     <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\Publisher\packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="RabbitMQ.Client">

@@ -14,20 +14,12 @@ namespace EasyNetQPublisher2
             var report = new SuccessFalseCatcherReport(new CompositeTaskId(1));
 
             using (var bus = RabbitHutch.CreateBus(string.Format("host={0};username=guest;password=guest", host),
-                                                   r => r.Register<ISerializer>(p => new BinarySerializer())
-                                                         .Register<IEasyNetQLogger>(p => new NoDebugLogger())))
+                                                   //r => r.Register<ISerializer>(p => new BinarySerializer())
+                                                   r => r.Register<IEasyNetQLogger>(p => new NoDebugLogger())))
             {
-                //   new Publisher(bus).RunInfinite();
-
-                using (var ch = bus.OpenPublishChannel(cc => cc.WithPublisherConfirms()))
-                {
-                    while (true)
-                        ch.Publish(report, cc => cc.OnSuccess(() => { }).OnFailure(() => { }));
-                }
+                //new Publisher(bus).RunManual();
+                new Publisher(bus).RunInfinite();
             }
         }
-
-        //new Publisher(bus).RunManual();
-        //new Publisher(bus).RunInfinite();
     }
 }

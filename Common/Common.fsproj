@@ -39,8 +39,7 @@
     <Reference Include="DistributedTaskDataContracts">
       <HintPath>..\lib\DistributedTaskDataContracts.dll</HintPath>
     </Reference>
-    <Reference Include="EasyNetQ">
-      <HintPath>..\Publisher\packages\EasyNetQ.0.9.1.55\lib\net40\EasyNetQ.dll</HintPath>
+    <Reference Include="EasyNetQ, Version=0.9.1.55, Culture=neutral, PublicKeyToken=null">
       <Private>True</Private>
     </Reference>
     <Reference Include="EasyNetQ.Management.Client">
@@ -73,6 +72,8 @@
     <None Include="Script.fsx" />
     <None Include="packages.config" />
     <Compile Include="Reports.fs" />
+    <Compile Include="Envelop.fs" />
+    <Compile Include="SimpleReports.fs" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>

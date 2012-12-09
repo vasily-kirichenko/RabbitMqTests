@@ -1,49 +1,55 @@
 ﻿using System;
 using System.Threading;
-using DistributedTaskDataContracts.Messages.Reports.FalseCatcher;
-using DistributedTaskDataContracts.Messages.Reports.Scanner;
+using System.Threading.Tasks;
+using Common;
 using EasyNetQ;
+using EasyNetQ.Topology;
 
 namespace EasyNetQConsumer2
 {
-    public class Consumer :
-        IConsume<SuccessFalseCatcherReport>,
-        IConsume<FailedFalseCatcherReport>,
-        IConsume<SuccessSingleFileScannerReport>,
-        IConsume<FailedScannerReport>
+    internal class Consumer
     {
-        static int _totalCount;
+        private readonly IBus _bus;
+        int _totalCount;
 
-        [Consumer(SubscriptionId = "1")]
-        public void Consume(SuccessFalseCatcherReport message)
+        public Consumer(IBus bus)
         {
-            Log();
+            _bus = bus;
         }
 
-        [Consumer(SubscriptionId = "1")]
-        public void Consume(FailedFalseCatcherReport message)
+        public void Run()
         {
-            Log();
+            var exchange = Exchange.DeclareTopic("reports", false, null);
+            
+            var fcQueue = Queue.DeclareTransient("reports.false_catcher.all");
+            fcQueue.BindTo(exchange, "SuccessFc", "FailedFc");
+            
+            var rescanQueue = Queue.DeclareTransient("reports.rescanner.all");
+            rescanQueue.BindTo(exchange, "SuccessReScan", "FailedReScan");
+
+            _bus.Advanced.Subscribe<Envelop>(fcQueue, (msg, info) =>
+                                                       Task.Factory.StartNew(
+                                                           () =>
+                                                               {
+                                                                   //Console.WriteLine("FC: {0} received.", msg);
+                                                                   Log();
+                                                               }));
+            
+            _bus.Advanced.Subscribe<Envelop>(rescanQueue, (msg, info) =>
+                                                       Task.Factory.StartNew(
+                                                           () =>
+                                                               {
+                                                                   //Console.WriteLine("ReScan: {0} received.", msg);
+                                                                   Log();
+                                                               }));
         }
 
-        [Consumer(SubscriptionId = "1")]
-        public void Consume(SuccessSingleFileScannerReport message)
+        private void Log()
         {
-            Log();
-        }
+            var count = Interlocked.Increment(ref _totalCount);
 
-        [Consumer(SubscriptionId = "1")]
-        public void Consume(FailedScannerReport message)
-        {
-            Log();
-        }
-
-        static void Log()
-        {
-            var currentCount = Interlocked.Increment(ref _totalCount);
-
-            if (currentCount % 100 == 0)
-                Console.WriteLine("Consumed {0} messages.", currentCount);
+            if (count % 100 == 0)
+                Console.WriteLine("{0} messages consumed.", count);
         }
     }
 }
