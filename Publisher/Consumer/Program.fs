@@ -1,9 +1,12 @@
 ﻿open System
+open System.IO
 open System.Text
 open System.Threading
 open RabbitMQ.Client
+open RabbitMQ.Client.Events
 open RabbitMQ.Client.MessagePatterns
 open RabbitMqUtils
+open System.Runtime.Serialization.Formatters.Binary
 
 type InteractiveConsumer() =
     inherit DefaultBasicConsumer()
@@ -39,14 +42,19 @@ let main argv =
     use conn = (connectionFactory host).CreateConnection()
     use ch = conn.CreateModel()
     ch.BasicQos(0u, uint16 50, false)
-    ch.QueueDeclare(queueName, false, false, false, null) |> ignore
+    ch.QueueDeclare(queueName, true, false, false, null) |> ignore
     ch.ExchangeDeclare("test_exchange", "direct", true, false, null)
     ch.QueueBind(queueName, "test_exchange", queueName)
 
     use sub = new Subscription(ch, queueName, false)
-    let mutable consumedMessagesCount: int = 0
+    let mutable consumedMessagesCount = 0
+    let pickler = FsPickler.FsPickler()
+    let f = BinaryFormatter()
 
     for msg in sub do
+        use ms = new MemoryStream((msg :?> BasicDeliverEventArgs).Body)
+        let msg = pickler.Deserialize ms
+        //let msg = f.Deserialize ms
         consumedMessagesCount <- consumedMessagesCount + 1
         if consumedMessagesCount % 1000 = 0 then printfn "%d messages have been consumed so far" consumedMessagesCount
         sub.Ack()
